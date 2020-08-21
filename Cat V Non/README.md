@@ -1,6 +1,6 @@
 # Cat V NonCat README
 
-#### Testing DeepLearning with C. Trying without and with linear algebra operations to quantize vectorization performance improvements.
+### Testing DeepLearning with C. Trying without and with linear algebra operations to quantize vectorization performance improvements.
 
 DeepLearning V0: Original "Logistic_Regression_with_a_Neural_Network_mindset_v6a" by deeplearning.ai in Python
 
