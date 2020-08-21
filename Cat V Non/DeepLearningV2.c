@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <time.h>
 
 //V2 of Cat V NonCat Identifier
 //Im Making this general Debug
@@ -22,11 +23,6 @@ Node** load_test_set(void);
 
 double*** flatten(Node** train_set, Node** test_set);
 double* sigmoid(double* z);
-
-double flatten_train_set_x[12288][209];
-double flatten_train_set_y[1][209];
-double flatten_test_set_x[12288][50];
-double flatten_test_set_y[1][50];
 double cost_function(double* A, double** Y);
 double* propagate(double* w, double* b, double** X, double** Y);
 void optimize(double* w, double* b, double** X, double** Y, int num_iterations, double learning_rate);
@@ -139,7 +135,7 @@ void optimize(double* w, double* b, double** X, double** Y, int num_iterations, 
 
     for(int iteration = 0; iteration < num_iterations; ++iteration)
     {
-        printf("Iteration %i\n", iteration);
+        //printf("Iteration %i\n", iteration);
         double* prop = propagate(w, b, X, Y);
 
         cost = prop[0];
@@ -160,7 +156,7 @@ void optimize(double* w, double* b, double** X, double** Y, int num_iterations, 
 
 }
 
-double* propagate(double* w, double* b, double** X, double** Y) //HERE
+double* propagate(double* w, double* b, double** X, double** Y) 
 {
     //printf("propogate\n");
     double* output = malloc(sizeof(double) * (12288 + 2));
@@ -508,8 +504,14 @@ int main(void)
         
     }*/
     
-    model(train_set_x, train_set_y, test_set_x, test_set_y, 10, 0.5);
-
+    //Start Clock
+    clock_t begin = clock();
+    model(train_set_x, train_set_y, test_set_x, test_set_y, 2000, 0.005);
+    
+    //Calculate Time
+    clock_t end = clock();
+    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("Runtime: %0.2fs\n", time_spent);
 
     return 0;
 }
