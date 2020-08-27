@@ -16,7 +16,7 @@ typedef struct Node
 } Node;
 
 //Functions Defs
-gsl_vector* sigmoid(gsl_vector* z); //Works
+gsl_vector* sigmoid(gsl_vector* z); 
 gsl_vector** propagate(gsl_vector* w, double* b, gsl_matrix* X, gsl_vector* Y);
 void optimize(gsl_vector* w, double* b, gsl_matrix* X, gsl_vector* Y, int num_iterations, double learning_rate);
 gsl_vector* predict(gsl_vector* w, double* b, gsl_matrix* X);
@@ -31,6 +31,7 @@ gsl_vector* sigmoid(gsl_vector* z) //Works
 {
     //printf("Sigmoid\n");
     gsl_vector_scale(z, -1);
+    
     //Have to exp element wise
     for(int index = 0; index < z->size; ++index)
         gsl_vector_set(z, index, exp(gsl_vector_get(z, index)));
@@ -40,10 +41,6 @@ gsl_vector* sigmoid(gsl_vector* z) //Works
     gsl_vector_set_all(s, 1);
     gsl_vector_div(s, z); //s = 1, s <- 1 / z;
 
-    /*for (int i = 0; i < s->size; i++)
-    {
-        printf ("s_%d = %0.10g\n", i, gsl_vector_get (s, i));
-    }*/
 
     return s;
 }
@@ -59,16 +56,9 @@ double calculate_cost(gsl_vector* Y, gsl_vector* A)
     gsl_vector_memcpy(copied_Y, Y);
     gsl_vector_set_all(subbed_A , 1);
     gsl_vector_sub(subbed_A, A);
-    /*printf("(1 - A)\n");
-    for(int i = 0; i < A->size; ++i)
-        printf("%g ", gsl_vector_get(subbed_A, i));*/
 
     gsl_vector_set_all(subbed_Y, 1);
     gsl_vector_sub(subbed_Y, Y);
-    /*printf("\n(1 - Y)\n");
-    for(int i = 0; i < A->size; ++i)
-        printf("%g ", gsl_vector_get(subbed_Y, i));*/
-
     
     for(int i = 0; i < A->size; ++i)
     {
@@ -78,13 +68,12 @@ double calculate_cost(gsl_vector* Y, gsl_vector* A)
     gsl_vector_mul(copied_Y, logged_A); 
     gsl_vector_mul(subbed_Y, subbed_A);
     gsl_vector_add(copied_Y, subbed_Y);
-    double cost = 0;
-    for(int i = 0; i < A->size; ++i)
-    {
-        cost += gsl_vector_get(copied_Y, i);
-    }
-    cost *= (double)-1 * (double)1 / A->size;
-    return cost;
+    double* cost = malloc(sizeof(double));
+    gsl_vector* temp = gsl_vector_alloc(copied_Y->size);
+    gsl_vector_set_all(temp, 1);
+    gsl_blas_ddot(copied_Y, temp, cost);
+    cost[0] *= (double)-1 * (double)1 / A->size;
+    return cost[0];
 }
 
 gsl_vector** propagate(gsl_vector* w, double* b, gsl_matrix* X, gsl_vector* Y)
@@ -102,29 +91,19 @@ gsl_vector** propagate(gsl_vector* w, double* b, gsl_matrix* X, gsl_vector* Y)
     double cost = calculate_cost(Y, A);
     //printf("Cost: %f\n", cost);
 
-
     //dw = (1 / m) * np.dot(X,(A - Y).T)
     gsl_vector_sub(A, Y); //Stored in A
     gsl_vector* C = gsl_vector_calloc(X->size1);
     gsl_blas_dgemv(CblasNoTrans, 1.0, X, A, 1.0, C);
-    /*printf("MID C ");
-    for(int i = 0; i < 3; ++i)
-        printf("%g ", gsl_vector_get(C, i));*/
     gsl_vector_scale(C, (double)1/X->size2);
 
     //db
     double* db = malloc(sizeof(double));
     db[0] = 0;
-    for(int i = 0; i < A->size; ++i)
-        db[0] += gsl_vector_get(A, i);
     gsl_vector* temp = gsl_vector_alloc(A->size);
-    gsl_vector_set_all(temp, 1); //Use this to change the for loop to a dot 
+    gsl_vector_set_all(temp, 1);
+    gsl_blas_ddot(A, temp, db);
     db[0] *= ((double)1 / (double)X->size2);
-
-    /*printf("Dw / b\n");
-    for(int i = 0; i < 3; ++i)
-        printf("%g ", gsl_vector_get(C, i));
-    printf("%f\n", db[0]);*/
 
     output[0] = C;
     output[1] = gsl_vector_alloc(1);
@@ -135,26 +114,20 @@ gsl_vector** propagate(gsl_vector* w, double* b, gsl_matrix* X, gsl_vector* Y)
 
 void optimize(gsl_vector* w, double* b, gsl_matrix* X, gsl_vector* Y, int num_iterations, double learning_rate)
 {
-    printf("Optimize\n");
+    //printf("Optimize\n");
     gsl_vector** prop;
     gsl_vector* dw;
 
     for(int i = 0; i < num_iterations; ++i)
     {
         //printf("Iteration: %i\n", i);
-        /*for(int i = 0; i < 3; ++i)
-            printf("%0.10f ", gsl_vector_get(w,i));
-        printf("%f\n", b[0]);*/
-
         
         prop = propagate(w, b, X, Y);
         dw   = prop[0];
         double db = gsl_vector_get(prop[1], 0);
         gsl_vector_scale(dw, learning_rate);
         gsl_vector_sub(w, dw);
-        b[0] = b[0] - (learning_rate * db);
-
-        
+        b[0] = b[0] - (learning_rate * db);        
     }
 
     return;
@@ -197,13 +170,6 @@ void model(gsl_matrix* X_train, gsl_vector* Y_train, gsl_matrix* X_test, gsl_vec
 
     gsl_vector* prediction_test = predict(w, b, X_train);
     
-    /*printf("\nFINAL WEIGHTS: ");
-    for(int i = 0; i < 5; ++i)
-        printf("%f ", gsl_vector_get(w,i));
-    printf("%f\n", b[0]);
-    printf("\nFINAL PREDS:\n");
-    for(int i = 0; i < prediction_test->size; ++i)
-        printf("%f\t", gsl_vector_get(prediction_test,i));*/
 
     //Train Accuracy
     int total = 0;
@@ -224,23 +190,6 @@ void model(gsl_matrix* X_train, gsl_vector* Y_train, gsl_matrix* X_test, gsl_vec
     printf("Test Accuracy: %0.2f%%\n", (double)total / prediction_test->size * 100);
     
 }
-
-/*double cost_function(double* A, double** Y)
-{
-    //printf("cost_function\n");
-    double sum = 0;
-    int i = 0;
-    while(Y[i])
-    {
-        //printf("Sum: %f\t", sum);
-        sum = sum + (Y[i][0] * log(A[i])) + ((double)1 - Y[i][0]) * log((double)1 - A[i]);
-        ++i;
-    }
-    
-    sum = -1 * (1 / (double)(i + 1)) * sum;
-
-    return sum;
-}*/
 
 double*** flatten(Node** train_set, Node** test_set)
 {
@@ -559,6 +508,7 @@ int main(void)
     gsl_vector* test_set_y_vector = gsl_vector_alloc(size);
     for(int i = 0; i < size; ++i)
         gsl_vector_set(test_set_y_vector, i, test_set_y[i][0]);
+
 
     //Start Clock
     clock_t begin = clock();
